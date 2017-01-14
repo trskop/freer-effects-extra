@@ -29,7 +29,7 @@ module Control.Monad.Freer.State.Extra
     -- "Control.Lens". Reason for this decision is the fact that /lens/
     -- definitions use @MonadState@ constraint, which doesn't have such special
     -- case as @MonadReader r ((->) r)@, therefore, these definitions aren't
-    -- applicable outside of 'State' effect context.
+    -- required to be applicable outside of 'State' effect context.
 
     -- *** Lens Getters
     , use
