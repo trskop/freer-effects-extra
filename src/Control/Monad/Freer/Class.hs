@@ -26,20 +26,19 @@ module Control.Monad.Freer.Class
     )
   where
 
-import Control.Applicative (Alternative(..), Applicative(pure))
-import Control.Monad (Monad, join)
+import Control.Applicative (pure)
+import Control.Monad (Monad)
 import Data.Function ((.), id)
-import Data.Functor ((<$>))
 import Data.Monoid (Monoid)
 
-import Control.Monad.Freer (Eff, NonDetEff, makeChoiceA, send)
+import Control.Monad.Freer (Eff)
 import qualified Control.Monad.Freer.Internal as Internal
     ( Eff(E, Val)
     , run
     , runM
     , qComp
     )
-import Control.Monad.Trans.Class (MonadTrans, lift)
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Cont (ContT)
 import Control.Monad.Trans.Except (ExceptT)
 import Control.Monad.Trans.Identity (IdentityT)
@@ -116,39 +115,51 @@ weakenEff = \case
 
 -- {{{ Monad Transformers -----------------------------------------------------
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (ContT e m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (ExceptT e m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (IdentityT m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (ListT m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (MaybeT m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance (MonadEff eff m, Monoid w) => MonadEff eff (Lazy.RWST r w s m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance (MonadEff eff m, Monoid w) => MonadEff eff (Strict.RWST r w s m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (ReaderT r m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (Lazy.StateT s m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance MonadEff eff m => MonadEff eff (Strict.StateT s m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance (MonadEff eff m, Monoid w) => MonadEff eff (Lazy.WriterT w m) where
     liftEff = lift . liftEff
 
+-- | @'liftEff' = 'lift' . 'liftEff'@
 instance (MonadEff eff m, Monoid w) => MonadEff eff (Strict.WriterT w m) where
     liftEff = lift . liftEff
 

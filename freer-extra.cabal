@@ -15,11 +15,11 @@ cabal-version:          >=1.10
 extra-source-files:     ChangeLog.md, README.md
 
 library
-  hs-source-dirs:      src
+  hs-source-dirs:       src
   exposed-modules:
       Control.Monad.Freer.Class
-      Control.Monad.Freer.State.Extra
     , Control.Monad.Freer.Reader.Extra
+    , Control.Monad.Freer.State.Extra
   -- other-modules:
 
   build-depends:
@@ -28,7 +28,7 @@ library
     , transformers >=0.4 && <1
     -- ^ Version 0.4.0.0 introduced ExceptT and deprecated ErrorT.
 
-  default-language:    Haskell2010
+  default-language:     Haskell2010
   other-extensions:
       DataKinds
     , FlexibleContexts
@@ -38,3 +38,5 @@ library
     , NoImplicitPrelude
     , TypeFamilies
     , TypeOperators
+
+  ghc-options:          -Wall
