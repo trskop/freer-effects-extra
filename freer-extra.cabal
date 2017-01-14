@@ -1,8 +1,11 @@
 name:                   freer-extra
 version:                0.1.0.0
-synopsis:               TODO
-description:            TODO
-homepage:               TODO
+synopsis:               Extra goodies for freer package.
+description:
+  Extra goodies for <https://hackage.haskell.org/package/freer freer> package.
+
+homepage:               https://github.com/trskop/freer-extra
+bug-reports:            https://github.com/trskop/freer-extra/issues
 license:                BSD3
 license-file:           LICENSE
 author:                 Peter Trško
