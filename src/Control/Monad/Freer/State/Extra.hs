@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeOperators #-}
 -- |
 -- Module:       $HEADER$
--- Description:  Type class MonadEff.
+-- Description:  Extra goodies for State effect.
 -- Copyright:    (c) 2017 Peter Trško
 -- License:      BSD3
 --
