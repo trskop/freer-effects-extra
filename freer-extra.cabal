@@ -22,12 +22,14 @@ library
   exposed-modules:
       Control.Monad.Freer.Class
     , Control.Monad.Freer.Base
+    , Control.Monad.Freer.Exception.Extra
     , Control.Monad.Freer.Reader.Extra
     , Control.Monad.Freer.State.Extra
   -- other-modules:
 
   build-depends:
       base >=4.9 && <4.10
+    , exceptions >=0.6 && <0.9
     , freer ==0.2.*
     , lens ==4.*
     , mtl >=1.1 && <3
