@@ -30,6 +30,9 @@ library
       base >=4.9 && <4.10
     , freer ==0.2.*
     , lens ==4.*
+    , mtl >=1.1 && <3
+    -- ^ Version 1.1.0.0 is the first one that introduced
+    -- "Control.Monad.{Reader,State}.Class".
     , profunctors ==5.*
     , transformers >=0.4 && <1
     -- ^ Version 0.4.0.0 introduced ExceptT and deprecated ErrorT.

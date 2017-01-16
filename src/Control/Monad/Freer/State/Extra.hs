@@ -1,5 +1,10 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Type class MonadEff.
@@ -17,6 +22,10 @@ module Control.Monad.Freer.State.Extra
     --
     -- | Everything is beeing re-exported from it.
       module Control.Monad.Freer.State
+
+    -- * Effect Evaluation
+    , runStateM
+    , runStateAsBase
 
     -- * Effect Operations
     , gets
@@ -49,10 +58,13 @@ module Control.Monad.Freer.State.Extra
 import Prelude (($!))
 
 import Control.Applicative (pure)
+import Control.Monad ((>>), (>>=))
+import Data.Either (Either(Left, Right))
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Functor.Const (Const(Const, getConst))  -- base >=4.9
 import Data.Maybe (Maybe)
+import Unsafe.Coerce (unsafeCoerce)
 
 import Control.Lens
     ( ASetter
@@ -67,10 +79,81 @@ import Control.Lens
     , view
     , views
     )
-import Control.Monad.Freer (Eff, Member)
+import Control.Monad.Freer (Eff, Member, send)
+import qualified Control.Monad.Freer.Internal as Internal
+    ( Eff(E, Val)
+    , decomp
+    , qApp
+    , tsingleton
+    )
 import Control.Monad.Freer.State
+import Control.Monad.State.Class (MonadState)
+import qualified Control.Monad.State.Class as MonadState (get, put)
 import Data.Profunctor.Unsafe as Unsafe ((#.))
 
+import Control.Monad.Freer.Base (BaseMember)
+
+
+-- {{{ Effect Evaluation ------------------------------------------------------
+
+-- | This contraption is here only because 'State' doesn't expose its data
+-- constructors.
+data State' s v where
+    Get :: State' s s
+    Put :: !s -> State' s ()
+    -- TODO: Send pull-request to freer which exposes State's data
+    --       constructors.
+
+-- | Evaluate 'State' effect in terms of base effect using specified base
+-- effect operations.
+runStateAsBase
+    :: forall s m effs a
+    .  BaseMember m effs
+    => m s
+    -> (s -> m ())
+    -> Eff (State s ': effs) a
+    -> Eff effs a
+runStateAsBase baseGet basePut = \case
+    Internal.Val x -> pure x
+    Internal.E u q -> case Internal.decomp u of
+        Left  u' -> Internal.E u' . Internal.tsingleton
+            $ runStateAsBase' . Internal.qApp q
+        Right u' -> case coerce u' of
+            Get   -> send' baseGet >>= runStateAsBase' . Internal.qApp q
+            Put s ->
+                send' (basePut s) >> runStateAsBase' (q `Internal.qApp` ())
+  where
+    runStateAsBase' :: Eff (State s ': effs) a -> Eff effs a
+    runStateAsBase' = runStateAsBase baseGet basePut
+
+    send' :: m b -> Eff effs b
+    send' = send
+
+    -- TODO: Send pull-request to freer which exposes State's data
+    --       constructors.
+    coerce :: State s b -> State' s b
+    coerce = unsafeCoerce
+{-# INLINEABLE runStateAsBase #-}
+
+-- | Evaluate 'State' effect in terms of base effect, a monad that has
+-- 'MonadState' capabilities.
+--
+-- This function is just a specialisation of 'runStateAsBase':
+--
+-- @
+-- 'runStateM' = 'runStateAsBase' 'MonadState.get' 'MonadState.put'
+-- @
+runStateM
+    :: forall s m effs a
+    .  (MonadState s m, BaseMember m effs)
+    => Eff (State s ': effs) a
+    -> Eff effs a
+runStateM = runStateAsBase MonadState.get MonadState.put
+{-# INLINE runStateM #-}
+
+-- }}} Effect Evaluation ------------------------------------------------------
+
+-- {{{ Effect Operations ------------------------------------------------------
 
 -- | Get a specific component of the state.
 gets :: Member (State s) effs => (s -> a) -> Eff effs a
@@ -92,7 +175,7 @@ state f = do
     pure a
 {-# INLINE state #-}
 
--- {{{ Lens -------------------------------------------------------------------
+-- {{{ Effect Operations -- Lens ----------------------------------------------
 
 -- | Variant of Control.Lens.use' from "Control.Lens" that works for 'State'
 -- effect. See /lens/ documentation for more details, and examples.
@@ -165,4 +248,6 @@ l %%= f = state (l f)
 l ?= b = modify (l ?~ b)
 {-# INLINE (?=) #-}
 
--- }}} Lens -------------------------------------------------------------------
+-- }}} Effect Operations -- Lens ----------------------------------------------
+
+-- }}} Effect Operations ------------------------------------------------------

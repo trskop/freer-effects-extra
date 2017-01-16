@@ -1,5 +1,10 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Type class MonadEff.
@@ -19,6 +24,10 @@ module Control.Monad.Freer.Reader.Extra
     -- reimplemented here with more general type signature.
       module Control.Monad.Freer.Reader
 
+    -- * Effect Evaluation
+    , runReaderM
+    , runReaderAsBase
+
     -- * Effect Operations
     , asks
 
@@ -30,7 +39,10 @@ module Control.Monad.Freer.Reader.Extra
     )
   where
 
-import Data.Function (($))
+import Control.Applicative (pure)
+import Control.Monad ((>>=))
+import Data.Either (Either(Left, Right))
+import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Functor.Const (Const(Const, getConst))  -- base >=4.9
 
@@ -40,17 +52,71 @@ import Control.Lens
     , IndexedGetting
     , LensLike'
     )
-import Control.Monad.Freer (Eff, Member)
+import Control.Monad.Freer (Eff, Member, send)
+import qualified Control.Monad.Freer.Internal as Internal
+    ( Eff(Val, E)
+    , decomp
+    , qApp
+    , tsingleton
+    )
 import Control.Monad.Freer.Reader hiding (asks)
+import Control.Monad.Reader.Class (MonadReader)
+import qualified Control.Monad.Reader.Class as MonadReader (ask)
 import Data.Profunctor.Unsafe as Unsafe ((#.))
 
+import Control.Monad.Freer.Base (BaseMember)
+
+
+-- {{{ Effect Evaluation ------------------------------------------------------
+
+-- | Evaluate 'Reader' effect in terms of base effect using specified base
+-- effect operations.
+runReaderAsBase
+    :: forall m effs e a
+    .  BaseMember m effs
+    => m e
+    -> Eff (Reader e ': effs) a
+    -> Eff effs a
+runReaderAsBase baseAsk = \case
+    Internal.Val x -> pure x
+    Internal.E u q -> case Internal.decomp u of
+        Right Reader -> send' baseAsk >>= runReaderAsBase' . Internal.qApp q
+        Left  u' -> Internal.E u' . Internal.tsingleton
+            $ runReaderAsBase' . Internal.qApp q
+  where
+    runReaderAsBase' :: Eff (Reader e ': effs) a -> Eff effs a
+    runReaderAsBase' = runReaderAsBase baseAsk
+
+    send' :: m b -> Eff effs b
+    send' = send
+{-# INLINEABLE runReaderAsBase #-}
+
+-- | Evaluate 'Reader' effect in terms of base effect, a monad that has
+-- 'MonadReader' capabilities.
+--
+-- This function is just a specialisation of 'runReaderAsBase':
+--
+-- @
+-- 'runReaderM' = 'runReaderAsBase' 'MonadReader.ask'
+-- @
+runReaderM
+    :: forall e m effs a
+    .  (MonadReader e m, BaseMember m effs)
+    => Eff (Reader e ': effs) a
+    -> Eff effs a
+runReaderM = runReaderAsBase MonadReader.ask
+{-# INLINE runReaderM #-}
+
+-- }}} Effect Evaluation ------------------------------------------------------
+
+-- {{{ Effect Operations ------------------------------------------------------
 
 -- | Get a specific component of the environment.
 asks :: Member (Reader e) effs => (e -> a) -> Eff effs a
 asks f = f <$> ask
 {-# INLINE asks #-}
 
--- {{{ Lens -------------------------------------------------------------------
+-- {{{ Effect Operations -- Lens ----------------------------------------------
 
 -- | Variant of 'Control.Lens.view' that works for 'Reader' effect. See /lens/
 -- documentation for more details, and examples.
@@ -88,4 +154,6 @@ iviewsEff
 iviewsEff l f = asks (getConst Unsafe.#. l (Const Unsafe.#. Indexed f))
 {-# INLINE iviewsEff #-}
 
--- }}} Lens -------------------------------------------------------------------
+-- }}} Effect Operations -- Lens ----------------------------------------------
+
+-- {{{ Effect Operations ------------------------------------------------------
