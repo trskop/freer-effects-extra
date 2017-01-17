@@ -153,7 +153,7 @@ throwLeft f = either (throwError . f) pure
 -- isReadOnly = -- -->8--
 --
 -- foo h = do
---     isReadOnly `thenThrow` ReadOnlyHandle h
+--     isReadOnly >>= thenThrow (ReadOnlyHandle h)
 --     -- -->8--
 -- @
 thenThrow :: Member (Exc e) effs => e -> Bool -> Eff effs ()
@@ -177,7 +177,7 @@ thenThrow e condition
 -- checkIfResourceExists = -- -->8--
 --
 -- foo rid = do
---     checkIfResourceExists rid `otherwiseThrow` ResourceDoesNotExist rid
+--     checkIfResourceExists rid >>= otherwiseThrow (ResourceDoesNotExist rid)
 --     -- -->8--
 -- @
 otherwiseThrow :: Member (Exc e) effs => e -> Bool -> Eff effs ()
