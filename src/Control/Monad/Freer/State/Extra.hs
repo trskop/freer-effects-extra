@@ -26,6 +26,8 @@ module Control.Monad.Freer.State.Extra
     -- * Effect Evaluation
     , runStateM
     , runStateAsBase
+    , mapState
+    , readerToState
 
     -- * Effect Operations
     , gets
@@ -79,6 +81,7 @@ import Control.Lens
     , views
     )
 import Control.Monad.Freer (Eff, Member, handleRelay, send)
+import Control.Monad.Freer.Reader (Reader(Reader))
 import Control.Monad.Freer.State
 import Control.Monad.State.Class (MonadState)
 import qualified Control.Monad.State.Class as MonadState (get, put)
@@ -126,12 +129,47 @@ runStateAsBase baseGet basePut = handleRelay pure $ \e k ->
 -- 'runStateM' = 'runStateAsBase' 'MonadState.get' 'MonadState.put'
 -- @
 runStateM
-    :: forall s m effs a
-    .  (MonadState s m, BaseMember m effs)
+    :: (MonadState s m, BaseMember m effs)
     => Eff (State s ': effs) a
     -> Eff effs a
 runStateM = runStateAsBase MonadState.get MonadState.put
 {-# INLINE runStateM #-}
+
+-- | Evaluate @('State' s)@ effect by embeding its state value in to other
+-- 'State' effect.
+mapState
+    :: forall s' s effs a
+    .  Member (State s') effs
+    => (s' -> s)
+    -- ^ Project state @(s')@ of other 'State' effect, which is lower in the
+    -- effect stack, into state of currently evaluated 'State' effect.
+    -> (s -> s')
+    -- ^ Embed state of currently evaluated 'State' effect into state @(s')@ of
+    -- other 'State' effect, which is lower in the effect stack.
+    -> Eff (State s ': effs) a
+    -> Eff effs a
+mapState project embed = handleRelay pure $ \e k ->
+    case coerce e of
+        Get   -> get >>= k . project
+        Put s -> put (embed s) >> k ()
+  where
+    -- TODO: Send pull-request to freer which exposes State's data
+    --       constructors.
+    coerce :: forall b. State s b -> State' s b
+    coerce = unsafeCoerce
+
+-- | Interpret a @('Reader' e)@ effect as a @('State' s)@ by substituting
+-- 'Control.Monad.Freer.Reader.ask' for 'get' operation.
+--
+-- This allows us to use @('Reader' e)@ effect as a read-only access to whole
+-- or portion of a state.
+readerToState
+    :: Member (State s) effs
+    => (s -> e)
+    -- ^ Project state in to a readonly environment.
+    -> Eff (Reader e ': effs) a
+    -> Eff effs a
+readerToState project = handleRelay pure $ \Reader k -> get >>= k . project
 
 -- }}} Effect Evaluation ------------------------------------------------------
 

@@ -26,6 +26,7 @@ module Control.Monad.Freer.Exception.Extra
     -- * Effect Evaluation
     , runErrorM
     , runErrorAsBase
+    , mapError
 
     -- * Effect Operations
     , handleError
@@ -82,6 +83,21 @@ runErrorM
     -> Eff effs a
 runErrorM = runErrorAsBase throwM
 {-# INLINE runErrorM #-}
+
+-- | Evaluate @('Exc' e)@ effect by mapping it in to another ('Exc' e') effect.
+-- This is useful for example when embedding more specific exception in a more
+-- generic one.
+mapError
+    :: (Member (Exc e') effs)
+    => (e -> e')
+    -> Eff (Exc e ': effs) a
+    -> Eff effs a
+mapError f = handleRelay pure $ \(Exc e) k -> throwError (f e) >>= k
+    -- We aren't discarding the continuation, since we aren't actually handling
+    -- the exception effect fully, but relaying it to other effect/monad, and
+    -- we need it to be able to catch the exception and resume the
+    -- continuation.
+{-# INLINEABLE mapError #-}
 
 -- }}} Effect Evaluation ------------------------------------------------------
 
