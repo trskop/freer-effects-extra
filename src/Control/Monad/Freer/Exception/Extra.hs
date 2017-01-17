@@ -33,7 +33,9 @@ module Control.Monad.Freer.Exception.Extra
     , throwNothing
     , throwLeft
     , thenThrow
+    , thenThrowM
     , otherwiseThrow
+    , otherwiseThrowM
 
     -- ** Support For Lenses
     )
@@ -162,6 +164,20 @@ thenThrow e condition
   | otherwise = pure ()
 {-# INLINE thenThrow #-}
 
+-- | Throw exception when computation returns 'True'.
+--
+-- @
+-- isReadOnly :: Handle -> 'Eff' effs 'Bool'
+-- isReadOnly = -- -->8--
+--
+-- foo h = do
+--     isReadOnly `thenThrowM` ReadOnlyHandle h
+--     -- -->8--
+-- @
+thenThrowM :: Member (Exc e) effs => Eff effs Bool -> e -> Eff effs ()
+thenThrowM m e = m >>= thenThrow e
+{-# INLINE thenThrowM #-}
+
 -- | Throw exception when condition is 'False'.
 --
 -- Relation between 'thenThrow' and 'otherwiseThrow' can be described as:
@@ -183,5 +199,21 @@ thenThrow e condition
 otherwiseThrow :: Member (Exc e) effs => e -> Bool -> Eff effs ()
 otherwiseThrow e = thenThrow e . not
 {-# INLINE otherwiseThrow #-}
+
+-- | Throw exception when computation returns 'False'.
+--
+-- Usage example:
+--
+-- @
+-- checkIfResourceExists :: ResourceId -> 'Eff' effs 'Bool'
+-- checkIfResourceExists = -- -->8--
+--
+-- foo rid = do
+--     checkIfResourceExists rid `otherwiseThrowM` ResourceDoesNotExist rid
+--     -- -->8--
+-- @
+otherwiseThrowM :: Member (Exc e) effs => Eff effs Bool -> e -> Eff effs ()
+otherwiseThrowM m e = m >>= otherwiseThrow e
+{-# INLINE otherwiseThrowM #-}
 
 -- }}} Effect Operations ------------------------------------------------------
