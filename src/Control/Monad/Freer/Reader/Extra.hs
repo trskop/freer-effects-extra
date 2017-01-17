@@ -3,7 +3,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 -- |
 -- Module:       $HEADER$
@@ -41,8 +40,7 @@ module Control.Monad.Freer.Reader.Extra
 
 import Control.Applicative (pure)
 import Control.Monad ((>>=))
-import Data.Either (Either(Left, Right))
-import Data.Function (($), (.))
+import Data.Function (($))
 import Data.Functor ((<$>))
 import Data.Functor.Const (Const(Const, getConst))  -- base >=4.9
 
@@ -52,13 +50,7 @@ import Control.Lens
     , IndexedGetting
     , LensLike'
     )
-import Control.Monad.Freer (Eff, Member, send)
-import qualified Control.Monad.Freer.Internal as Internal
-    ( Eff(Val, E)
-    , decomp
-    , qApp
-    , tsingleton
-    )
+import Control.Monad.Freer (Eff, Member, handleRelay, send)
 import Control.Monad.Freer.Reader hiding (asks)
 import Control.Monad.Reader.Class (MonadReader)
 import qualified Control.Monad.Reader.Class as MonadReader (ask)
@@ -72,23 +64,11 @@ import Control.Monad.Freer.Base (BaseMember)
 -- | Evaluate 'Reader' effect in terms of base effect using specified base
 -- effect operations.
 runReaderAsBase
-    :: forall m effs e a
-    .  BaseMember m effs
+    :: BaseMember m effs
     => m e
     -> Eff (Reader e ': effs) a
     -> Eff effs a
-runReaderAsBase baseAsk = \case
-    Internal.Val x -> pure x
-    Internal.E u q -> case Internal.decomp u of
-        Right Reader -> send' baseAsk >>= runReaderAsBase' . Internal.qApp q
-        Left  u' -> Internal.E u' . Internal.tsingleton
-            $ runReaderAsBase' . Internal.qApp q
-  where
-    runReaderAsBase' :: Eff (Reader e ': effs) a -> Eff effs a
-    runReaderAsBase' = runReaderAsBase baseAsk
-
-    send' :: m b -> Eff effs b
-    send' = send
+runReaderAsBase baseAsk = handleRelay pure $ \Reader k -> send baseAsk >>= k
 {-# INLINEABLE runReaderAsBase #-}
 
 -- | Evaluate 'Reader' effect in terms of base effect, a monad that has
@@ -100,8 +80,7 @@ runReaderAsBase baseAsk = \case
 -- 'runReaderM' = 'runReaderAsBase' 'MonadReader.ask'
 -- @
 runReaderM
-    :: forall e m effs a
-    .  (MonadReader e m, BaseMember m effs)
+    :: (MonadReader e m, BaseMember m effs)
     => Eff (Reader e ': effs) a
     -> Eff effs a
 runReaderM = runReaderAsBase MonadReader.ask

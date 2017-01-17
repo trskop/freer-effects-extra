@@ -39,19 +39,13 @@ module Control.Monad.Freer.Exception.Extra
 import Control.Applicative (pure)
 import Control.Exception (Exception)
 import Control.Monad ((>>=))
-import Data.Either (Either(Left, Right), either)
+import Data.Either (Either, either)
 import Data.Maybe (Maybe, maybe)
 import Data.Function (($), (.), flip)
 
 import Control.Monad.Catch (MonadThrow, throwM)
 
-import Control.Monad.Freer (Eff, Member, send)
-import qualified Control.Monad.Freer.Internal as Internal
-    ( Eff(Val, E)
-    , decomp
-    , qApp
-    , tsingleton
-    )
+import Control.Monad.Freer (Eff, Member, handleRelay, send)
 import Control.Monad.Freer.Exception
 
 import Control.Monad.Freer.Base (BaseMember)
@@ -67,14 +61,11 @@ runErrorAsBase
     -- ^ Throw exception in context of base effect.
     -> Eff (Exc e ': effs) a
     -> Eff effs a
-runErrorAsBase throw = \case
-    Internal.Val x -> pure x
-    Internal.E u q -> case Internal.decomp u of
-        Right (Exc e) -> send (throw e) >>= runErrorAsBase' . Internal.qApp q
-        Left  u' -> Internal.E u' . Internal.tsingleton
-            $ runErrorAsBase' . Internal.qApp q
-  where
-    runErrorAsBase' = runErrorAsBase throw
+runErrorAsBase throw = handleRelay pure $ \(Exc e) k -> send (throw e) >>= k
+    -- We aren't discarding the continuation, since we aren't actually handling
+    -- the exception effect fully, but relaying it to other effect/monad, and
+    -- we need it to be able to catch the exception and resume the
+    -- continuation.
 {-# INLINEABLE runErrorAsBase #-}
 
 -- | Evaluate 'Exc' effect in terms of base effect, a monad that has
@@ -86,8 +77,7 @@ runErrorAsBase throw = \case
 -- 'runErrorM' = 'runErrorAsBase' 'throwM'
 -- @
 runErrorM
-    :: forall e m effs a
-    .  (Exception e, MonadThrow m, BaseMember m effs)
+    :: (Exception e, MonadThrow m, BaseMember m effs)
     => Eff (Exc e ': effs) a
     -> Eff effs a
 runErrorM = runErrorAsBase throwM

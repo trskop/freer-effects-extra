@@ -59,7 +59,6 @@ import Prelude (($!))
 
 import Control.Applicative (pure)
 import Control.Monad ((>>), (>>=))
-import Data.Either (Either(Left, Right))
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Functor.Const (Const(Const, getConst))  -- base >=4.9
@@ -79,13 +78,7 @@ import Control.Lens
     , view
     , views
     )
-import Control.Monad.Freer (Eff, Member, send)
-import qualified Control.Monad.Freer.Internal as Internal
-    ( Eff(E, Val)
-    , decomp
-    , qApp
-    , tsingleton
-    )
+import Control.Monad.Freer (Eff, Member, handleRelay, send)
 import Control.Monad.Freer.State
 import Control.Monad.State.Class (MonadState)
 import qualified Control.Monad.State.Class as MonadState (get, put)
@@ -113,25 +106,14 @@ runStateAsBase
     -> (s -> m ())
     -> Eff (State s ': effs) a
     -> Eff effs a
-runStateAsBase baseGet basePut = \case
-    Internal.Val x -> pure x
-    Internal.E u q -> case Internal.decomp u of
-        Left  u' -> Internal.E u' . Internal.tsingleton
-            $ runStateAsBase' . Internal.qApp q
-        Right u' -> case coerce u' of
-            Get   -> send' baseGet >>= runStateAsBase' . Internal.qApp q
-            Put s ->
-                send' (basePut s) >> runStateAsBase' (q `Internal.qApp` ())
+runStateAsBase baseGet basePut = handleRelay pure $ \e k ->
+    case coerce e of
+        Get   -> send baseGet >>= k
+        Put s -> send (basePut s) >> k ()
   where
-    runStateAsBase' :: Eff (State s ': effs) a -> Eff effs a
-    runStateAsBase' = runStateAsBase baseGet basePut
-
-    send' :: m b -> Eff effs b
-    send' = send
-
     -- TODO: Send pull-request to freer which exposes State's data
     --       constructors.
-    coerce :: State s b -> State' s b
+    coerce :: forall b. State s b -> State' s b
     coerce = unsafeCoerce
 {-# INLINEABLE runStateAsBase #-}
 
