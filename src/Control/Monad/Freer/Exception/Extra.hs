@@ -32,6 +32,8 @@ module Control.Monad.Freer.Exception.Extra
     , handleError
     , throwNothing
     , throwLeft
+    , thenThrow
+    , otherwiseThrow
 
     -- ** Support For Lenses
     )
