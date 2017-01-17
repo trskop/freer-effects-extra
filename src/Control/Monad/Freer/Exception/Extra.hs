@@ -30,8 +30,14 @@ module Control.Monad.Freer.Exception.Extra
 
     -- * Effect Operations
     , handleError
+
+    -- ** Specialised Variants of throwError
     , throwNothing
+    , throwNothing_
     , throwLeft
+    , throwLeft_
+
+    -- ** Conditionally Throw an Exception
     , thenThrow
     , thenThrowM
     , otherwiseThrow
@@ -48,6 +54,7 @@ import Data.Bool (Bool, not, otherwise)
 import Data.Either (Either, either)
 import Data.Maybe (Maybe, maybe)
 import Data.Function (($), (.), flip)
+import Data.Functor (void)
 
 import Control.Monad.Catch (MonadThrow, throwM)
 
@@ -132,6 +139,11 @@ throwNothing :: Member (Exc e) effs => e -> Maybe a -> Eff effs a
 throwNothing e = maybe (throwError e) pure
 {-# INLINE throwNothing #-}
 
+-- | Same as 'throwNothing', but it discards result.
+throwNothing_ :: Member (Exc e) effs => e -> Maybe a -> Eff effs ()
+throwNothing_ e = void . throwNothing e
+{-# INLINE throwNothing_ #-}
+
 -- | Throw exception when 'Left' is encountered.
 throwLeft
     :: Member (Exc e) effs
@@ -141,6 +153,16 @@ throwLeft
     -> Eff effs b
 throwLeft f = either (throwError . f) pure
 {-# INLINE throwLeft #-}
+
+-- | Same as 'throwLeft', but it discards result.
+throwLeft_
+    :: Member (Exc e) effs
+    => (a -> e)
+    -- ^ Convert 'Left' value in to an exception.
+    -> Either a b
+    -> Eff effs ()
+throwLeft_ f = void . throwLeft f
+{-# INLINE throwLeft_ #-}
 
 -- | Throw exception when condition is 'True'.
 --
