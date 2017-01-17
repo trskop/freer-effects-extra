@@ -242,6 +242,7 @@ assign l b = modify (l .~ b)
 (%=) :: Member (State s) effs => ASetter s s a b -> (a -> b) -> Eff effs ()
 l %= f = modify (l %~ f)
 {-# INLINE (%=) #-}
+infix 4 %=
 
 -- | This is an alias for ('%='), see its documentation for more details.
 modifying
@@ -261,12 +262,14 @@ modifying = (%=)
     -> Eff effs r
 l %%= f = state (l f)
 {-# INLINE (%%=) #-}
+infix 4 %%=
 
 -- | Variant of 'Control.Lens.?=' from "Control.Lens" that works for 'State'
 -- effect. See /lens/ documentation for more details, and examples.
 (?=) :: Member (State s) effs => ASetter s s a (Maybe b) -> b -> Eff effs ()
 l ?= b = modify (l ?~ b)
 {-# INLINE (?=) #-}
+infix 4 ?=
 
 -- }}} Effect Operations -- Lens ----------------------------------------------
 
