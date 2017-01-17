@@ -40,6 +40,7 @@ module Control.Monad.Freer.Exception.Extra
 import Control.Applicative (pure)
 import Control.Exception (Exception)
 import Control.Monad ((>>=))
+import Data.Bool (Bool, not, otherwise)
 import Data.Either (Either, either)
 import Data.Maybe (Maybe, maybe)
 import Data.Function (($), (.), flip)
@@ -137,4 +138,48 @@ throwLeft
 throwLeft f = either (throwError . f) pure
 {-# INLINE throwLeft #-}
 
--- {{{ Effect Operations ------------------------------------------------------
+-- | Throw exception when condition is 'True'.
+--
+-- Relation between 'thenThrow' and 'otherwiseThrow' can be described as:
+--
+-- @
+-- 'thenThrow' e = 'otherwiseThrow' e . 'not'
+-- @
+--
+-- @
+-- isReadOnly :: Handle -> 'Eff' effs 'Bool'
+-- isReadOnly = -- -->8--
+--
+-- foo h = do
+--     isReadOnly `thenThrow` ReadOnlyHandle h
+--     -- -->8--
+-- @
+thenThrow :: Member (Exc e) effs => e -> Bool -> Eff effs ()
+thenThrow e condition
+  | condition = throwError e
+  | otherwise = pure ()
+{-# INLINE thenThrow #-}
+
+-- | Throw exception when condition is 'False'.
+--
+-- Relation between 'thenThrow' and 'otherwiseThrow' can be described as:
+--
+-- @
+-- 'otherwiseThrow' e = 'thenThrow' e . 'not'
+-- @
+--
+-- Usage example:
+--
+-- @
+-- checkIfResourceExists :: ResourceId -> 'Eff' effs 'Bool'
+-- checkIfResourceExists = -- -->8--
+--
+-- foo rid = do
+--     checkIfResourceExists rid `otherwiseThrow` ResourceDoesNotExist rid
+--     -- -->8--
+-- @
+otherwiseThrow :: Member (Exc e) effs => e -> Bool -> Eff effs ()
+otherwiseThrow e = thenThrow e . not
+{-# INLINE otherwiseThrow #-}
+
+-- }}} Effect Operations ------------------------------------------------------
