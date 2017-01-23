@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 -- |
 -- Module:       $HEADER$
@@ -23,10 +25,19 @@ module Control.Monad.Freer.Exception.Extra
     -- | Everything is beeing re-exported from it.
       module Control.Monad.Freer.Exception
 
+    -- * ExcMembers
+    , ExcMembers
+    , Excs
+
     -- * Effect Evaluation
+    , evalError
     , runErrorM
     , runErrorAsBase
     , mapError
+
+    -- ** Multiple Exception Effects
+    , HandleErrors(..)
+    , evalErrors
 
     -- * Effect Operations
     , handleError
@@ -42,8 +53,6 @@ module Control.Monad.Freer.Exception.Extra
     , thenThrowM
     , otherwiseThrow
     , otherwiseThrowM
-
-    -- ** Support For Lenses
     )
   where
 
@@ -52,17 +61,37 @@ import Control.Exception (Exception)
 import Control.Monad ((>>=))
 import Data.Bool (Bool, not, otherwise)
 import Data.Either (Either, either)
-import Data.Maybe (Maybe, maybe)
-import Data.Function (($), (.), flip)
+import Data.Function (($), (.), flip, id)
 import Data.Functor (void)
+import Data.Kind (Constraint)
+import Data.Maybe (Maybe, maybe)
 
 import Control.Monad.Catch (MonadThrow, throwM)
-
 import Control.Monad.Freer (Eff, Member, handleRelay, send)
 import Control.Monad.Freer.Exception
 
 import Control.Monad.Freer.Base (BaseMember)
 
+
+-- | Simplified 'Control.Monad.Freer.Members' constraint for 'Exc' effects.
+--
+-- Following constraints are equivalent:
+--
+-- * @'Control.Monad.Freer.Members' '[Exc Err1, Exc Err2, ..., Exc ErrN] effs@
+--
+-- * @'ExcMembers' '[Err1, Err2, ..., ErrN] effs@
+type family ExcMembers (es :: [*]) (effs :: [* -> *]) :: Constraint where
+    ExcMembers '[] effs = ()
+    ExcMembers (e ': es) effs = (Member (Exc e) effs, ExcMembers es effs)
+
+-- | Following two types are equivalent:
+--
+-- * @'Eff' ('Exc' Err1, 'Exc' Err2, ..., 'Exc' ErrN ': effs) r@
+--
+-- * @'Eff ('Excs' '[Err1, Err2, ... ErrN] effs) r@
+type family Excs (es :: [*]) (effs :: [* -> *]) :: [* -> *] where
+    Excs '[] effs = effs
+    Excs (e ': es) effs = Exc e ': Excs es effs
 
 -- {{{ Effect Evaluation ------------------------------------------------------
 
@@ -110,6 +139,44 @@ mapError f = handleRelay pure $ \(Exc e) k -> throwError (f e) >>= k
     -- we need it to be able to catch the exception and resume the
     -- continuation.
 {-# INLINEABLE mapError #-}
+
+-- | Stack of exception handlers.
+data HandleErrors (es :: [*]) (effs :: [* -> *]) a where
+    -- | There is no error left to be handled.
+    NoErrorHandler :: HandleErrors '[] effs a
+
+    HandleError
+        :: (e -> Eff (Excs es effs) a)
+        -> HandleErrors es effs a
+        -> HandleErrors (e ': es) effs a
+
+-- | Similar to 'runError', but instead of returning the error in 'Either', it
+-- handles it using provided function.
+--
+-- @
+-- 'evalError' h === 'runError' >=> either h pure
+-- @
+evalError :: (e -> Eff effs a) -> Eff (Exc e ': effs) a -> Eff effs a
+evalError h = handleRelay pure (\(Exc e) _k -> h e)
+{-# INLINEABLE evalError #-}
+
+-- | Evaluate 'Exc' effects for all @(es :: [*])@ exceptions by using provided
+-- stack of error handlers.
+--
+-- Following equations hold:
+--
+-- * @'evalErrors' 'NoErrorHandler' === 'id'@
+--
+-- * @'evalErrors' ('HandleError' h 'NoErrorHandler') === 'evalError' h@
+evalErrors
+    :: HandleErrors es effs a
+    -- ^ Stack of error handlers that will be used during evaluation.
+    -> Eff (Excs es effs) a
+    -> Eff effs a
+evalErrors = \case
+    NoErrorHandler -> id
+    HandleError h hs -> evalErrors hs . evalError h
+{-# INLINEABLE evalErrors #-}
 
 -- }}} Effect Evaluation ------------------------------------------------------
 
