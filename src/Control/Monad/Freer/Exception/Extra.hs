@@ -47,6 +47,7 @@ module Control.Monad.Freer.Exception.Extra
     , throwNothing_
     , throwLeft
     , throwLeft_
+    , throwException
 
     -- ** Conditionally Throw an Exception
     , thenThrow
@@ -57,7 +58,7 @@ module Control.Monad.Freer.Exception.Extra
   where
 
 import Control.Applicative (pure)
-import Control.Exception (Exception)
+import Control.Exception (Exception, SomeException, toException)
 import Control.Monad ((>>=))
 import Data.Bool (Bool, not, otherwise)
 import Data.Either (Either, either)
@@ -230,6 +231,13 @@ throwLeft_
     -> Eff effs ()
 throwLeft_ f = void . throwLeft f
 {-# INLINE throwLeft_ #-}
+
+throwException
+    :: (Exception e, Member (Exc SomeException) effs)
+    => e
+    -> Eff effs a
+throwException = throwError . toException
+{-# INLINE throwException #-}
 
 -- | Throw exception when condition is 'True'.
 --
