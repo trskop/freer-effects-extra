@@ -23,8 +23,11 @@
 -- Handle base monad of an effect stack as a special case of an effect.
 module Control.Monad.Freer.Base
     (
+    -- * Last Effect and Initial Effects
+      LastMember
+
     -- * Base Effect
-      BaseMember
+    , BaseMember
     , sendBase
 
     -- * MonadBase
@@ -55,6 +58,28 @@ import System.IO (IO)
 import Control.Monad.Base (MonadBase(liftBase))
 import Control.Monad.Freer (Eff, Member, send)
 
+
+-- {{{ LastMember -------------------------------------------------------------
+
+-- | Similar as 'Member', but checks if the @(eff :: * -> *)@ is last in the
+-- stack of effects. Last effect may have a special meaning, see 'BaseMember'
+-- for more details.
+class Member eff effs => LastMember (eff :: * -> *) (effs :: [* -> *])
+    | effs -> eff
+
+-- | Base case for 'LastMember'.
+instance LastMember eff '[eff]
+
+-- | Recursively look for a base effect. We need to make sure that this
+-- instance is not overlapping with @instance BaseMember m '[m]@, which is the
+-- reason for the complex pattern matching on list of effects.
+instance
+    ( (any1 == eff) ~ 'False
+    , (any2 == eff) ~ 'False
+    , Member eff (any1 ': any2 ': effs)
+    ) => LastMember eff (any1 ': any2 ': effs)
+
+-- }}} LastMember -------------------------------------------------------------
 
 -- {{{ BaseMember -------------------------------------------------------------
 
@@ -107,31 +132,11 @@ import Control.Monad.Freer (Eff, Member, send)
 -- effect. To correct this issue use @'Eff'
 -- '['Control.Monad.Freer.Reader.Reader' (), 'Control.Monad.Freer.State.State'
 -- (), 'IO'] ()@ instead.
-class BaseMember' eff effs => BaseMember eff effs | effs -> eff
-instance BaseMember' eff effs => BaseMember eff effs
-
--- | Real implementation of 'BaseMember' type class, which is not exported to
--- hide the complexity, and get rid of the compulsion to create new instance
--- for it.
-class
-    ( Member eff effs
-    , Monad eff
-    ) => BaseMember' (eff :: * -> *) (effs :: [* -> *])
-    | effs -> eff
+class (Monad m, LastMember m effs) => BaseMember m effs | effs -> m
 
 -- | Last effect that is also a monad is considered to be a base monad, i.e.
 -- base effect.
-instance Monad m => BaseMember' m '[m]
-
--- | Recursively look for a base monad\/effect. We need to make sure that this
--- instance is not overlapping with @instance Monad m => BaseMember m '[m]@,
--- which is the reason for the complex patternmatching on list of effects.
-instance
-    ( (any1 == m) ~ 'False
-    , (any2 == m) ~ 'False
-    , Member m (any1 ': any2 ': effs)
-    , Monad m
-    ) => BaseMember' m (any1 ': any2 ': effs)
+instance (Monad m, LastMember m effs) => BaseMember m effs
 
 -- | Function 'send' restricted to sending a base (last) effect.
 --
