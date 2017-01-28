@@ -25,6 +25,7 @@ module Control.Monad.Freer.Base
     (
     -- * Last Effect and Initial Effects
       LastMember
+    , Init
 
     -- * Base Effect
     , BaseMember
@@ -53,11 +54,34 @@ import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Bool (Bool(False))
 import Data.Function ((.))
 import Data.Type.Equality (type (==))
+import GHC.TypeLits (TypeError, ErrorMessage((:<>:), ShowType, Text))
 import System.IO (IO)
 
 import Control.Monad.Base (MonadBase(liftBase))
 import Control.Monad.Freer (Eff, Member, send)
 
+
+-- {{{ Init -------------------------------------------------------------------
+
+type MissingBaseEffectError (m :: * -> *) =
+    'Text "Found '[], but expected '[" ':<>: 'ShowType m ':<>: 'Text "]."
+
+type ExpectedDifferentBaseEffectError (m :: * -> *) (e :: * -> *) =
+    'Text "Found '[" ':<>: 'ShowType e ':<>: 'Text "], but expected '["
+    ':<>: 'ShowType m ':<>: 'Text "]."
+
+-- | Take all effects from @(effs :: [* -> *])@, except the last effect which
+-- must have type @(m :: * -> *)@.
+--
+-- >>> :t Proxy @(Init IO '[Reader (), State (), IO])
+-- Proxy @(Init IO '[Reader (), State (), IO]) :: Proxy '[Reader (), State ()]
+type family Init (m :: * -> *) (effs :: [* -> *]) :: [* -> *] where
+    Init m       '[]  = TypeError (MissingBaseEffectError m)
+    Init m (m ': '[]) = '[]
+    Init m (e ': '[]) = TypeError (ExpectedDifferentBaseEffectError m e)
+    Init m (e ':  es) = e ': Init m es
+
+-- }}} Init -------------------------------------------------------------------
 
 -- {{{ LastMember -------------------------------------------------------------
 
