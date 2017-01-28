@@ -41,6 +41,7 @@ module Control.Monad.Freer.Exception.Extra
 
     -- * Effect Operations
     , handleError
+    , tryError
 
     -- ** Specialised Variants of throwError
     , throwNothing
@@ -61,9 +62,9 @@ import Control.Applicative (pure)
 import Control.Exception (Exception, SomeException, toException)
 import Control.Monad ((>>=))
 import Data.Bool (Bool, not, otherwise)
-import Data.Either (Either, either)
+import Data.Either (Either(Left, Right), either)
 import Data.Function (($), (.), flip, id)
-import Data.Functor (void)
+import Data.Functor ((<$>), void)
 import Data.Kind (Constraint)
 import Data.Maybe (Maybe, maybe)
 
@@ -201,6 +202,12 @@ handleError
     -> Eff effs a
 handleError = flip catchError
 {-# INLINE handleError #-}
+
+-- | Similar to 'catchError'\/'handleError', but returns an 'Either' result
+-- which is @('Right' a)@ if no exception of type @e@ was raised, or
+-- @('Left' ex)@ if an exception of type @e@ was raised and its value is @ex@.
+tryError :: Member (Exc e) effs => Eff effs a -> Eff effs (Either e a)
+tryError m = (Right <$> m) `catchError` (pure . Left)
 
 -- | Throw exception when 'Nothing' is encountered.
 throwNothing :: Member (Exc e) effs => e -> Maybe a -> Eff effs a
