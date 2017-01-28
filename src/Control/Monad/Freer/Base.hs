@@ -99,7 +99,6 @@ instance LastMember eff '[eff]
 -- reason for the complex pattern matching on list of effects.
 instance
     ( (any1 == eff) ~ 'False
-    , (any2 == eff) ~ 'False
     , Member eff (any1 ': any2 ': effs)
     ) => LastMember eff (any1 ': any2 ': effs)
 
