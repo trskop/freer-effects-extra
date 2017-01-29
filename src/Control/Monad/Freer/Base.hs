@@ -95,7 +95,7 @@ class Member eff effs => LastMember (eff :: * -> *) (effs :: [* -> *])
 instance LastMember eff '[eff]
 
 -- | Recursively look for a base effect. We need to make sure that this
--- instance is not overlapping with @instance BaseMember m '[m]@, which is the
+-- instance is not overlapping with @instance LastMember m '[m]@, which is the
 -- reason for the complex pattern matching on list of effects.
 instance
     ( (any1 == eff) ~ 'False
@@ -155,6 +155,15 @@ instance
 -- effect. To correct this issue use @'Eff'
 -- '['Control.Monad.Freer.Reader.Reader' (), 'Control.Monad.Freer.State.State'
 -- (), 'IO'] ()@ instead.
+--
+-- There is also another variation of the error message for the above cause:
+--
+-- @
+-- \<interactive\>:1:1: error:
+--     • Couldn't match expected type ‘'False’
+--                   with actual type ‘Data.Type.Equality.EqArrow r'0 IO’
+--       The type variable ‘r'0’ is ambiguous
+-- @
 class (Monad m, LastMember m effs) => BaseMember m effs | effs -> m
 
 -- | Last effect that is also a monad is considered to be a base monad, i.e.
