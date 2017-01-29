@@ -65,7 +65,6 @@ import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.Functor.Const (Const(Const, getConst))  -- base >=4.9
 import Data.Maybe (Maybe)
-import Unsafe.Coerce (unsafeCoerce)
 
 import Control.Lens
     ( ASetter
@@ -92,14 +91,6 @@ import Control.Monad.Freer.Base (BaseMember)
 
 -- {{{ Effect Evaluation ------------------------------------------------------
 
--- | This contraption is here only because 'State' doesn't expose its data
--- constructors.
-data State' s v where
-    Get :: State' s s
-    Put :: !s -> State' s ()
-    -- TODO: Send pull-request to freer which exposes State's data
-    --       constructors.
-
 -- | Evaluate 'State' effect in terms of base effect using specified base
 -- effect operations.
 runStateAsBase
@@ -110,14 +101,9 @@ runStateAsBase
     -> Eff (State s ': effs) a
     -> Eff effs a
 runStateAsBase baseGet basePut = handleRelay pure $ \e k ->
-    case coerce e of
+    case e of
         Get   -> send baseGet >>= k
         Put s -> send (basePut s) >> k ()
-  where
-    -- TODO: Send pull-request to freer which exposes State's data
-    --       constructors.
-    coerce :: forall b. State s b -> State' s b
-    coerce = unsafeCoerce
 {-# INLINEABLE runStateAsBase #-}
 
 -- | Evaluate 'State' effect in terms of base effect, a monad that has
@@ -149,14 +135,9 @@ mapState
     -> Eff (State s ': effs) a
     -> Eff effs a
 mapState project embed = handleRelay pure $ \e k ->
-    case coerce e of
+    case e of
         Get   -> get >>= k . project
         Put s -> put (embed s) >> k ()
-  where
-    -- TODO: Send pull-request to freer which exposes State's data
-    --       constructors.
-    coerce :: forall b. State s b -> State' s b
-    coerce = unsafeCoerce
 
 -- | Interpret a @('Reader' e)@ effect as a @('State' s)@ by substituting
 -- 'Control.Monad.Freer.Reader.ask' for 'get' operation.
