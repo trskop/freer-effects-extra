@@ -14,13 +14,16 @@ copyright:              (c) 2016-2017 Peter Trško
 category:               Control
 build-type:             Simple
 cabal-version:          >=1.10
+tested-with:            GHC ==8.0.1
 
 extra-source-files:     ChangeLog.md, README.md
 
 library
   hs-source-dirs:       src
   exposed-modules:
-      Control.Monad.Freer.Class
+      Control.Monad.Freer.Catch
+    , Control.Monad.Freer.Class
+    , Control.Monad.Freer.Control
     , Control.Monad.Freer.Base
     , Control.Monad.Freer.Exception.Extra
     , Control.Monad.Freer.Reader.Extra
