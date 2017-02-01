@@ -53,14 +53,27 @@ import Data.Open.Union (weaken)
 
 -- | This class captures the notion that 'Eff' monad can be used as a base of a
 -- monadic stack.
+--
+-- Example of a monadic stack where 'Eff' is used as a base monad:
+--
+-- @
+-- type Aff effs a = 'ExceptT' err ('ContT' () ('Eff' effs)) a
+-- @
+--
+-- In the above example 'liftEff' can be used to lift 'Eff' computation in to
+-- 'Aff' computation.
+--
+-- Dual situation, to having 'Eff' on the bottom of monadic stack, is when
+-- 'Eff' is used on top of a monadic stack. For details on how to handle such
+-- situations see module "Control.Monad.Freer.Base".
 class Monad m => MonadEff effs m | m -> effs where
     -- | Lift 'Eff' monad in to a monad that natively supports specified
-    -- effects (@effs@).
+    -- effects @effs :: [* -> *]@.
     liftEff :: Eff effs a -> m a
 
 -- | Variant of 'liftEff' which allows effects to be specified explicitly using
 -- a proxy type. This is useful in cases when type inference would fail without
--- explicitly knowing the exact type of @effs@.
+-- explicitly knowing the exact type of @effs :: [* -> *]@.
 --
 -- >>> :set -XDataKinds -XTypeApplications
 -- >>> import Data.Proxy

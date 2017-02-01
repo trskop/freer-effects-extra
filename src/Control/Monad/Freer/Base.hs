@@ -70,7 +70,7 @@ type ExpectedDifferentBaseEffectError (m :: * -> *) (e :: * -> *) =
     'Text "Found '[" ':<>: 'ShowType e ':<>: 'Text "], but expected '["
     ':<>: 'ShowType m ':<>: 'Text "]."
 
--- | Take all effects from @(effs :: [* -> *])@, except the last effect which
+-- | Take all effects from @(effs :: [* -> *])@, except the last effect, which
 -- must have type @(m :: * -> *)@.
 --
 -- >>> :t Proxy @(Init IO '[Reader (), State (), IO])
@@ -117,7 +117,7 @@ instance
 -- as 'Member', but it makes a distinction between common effects and effect(s)
 -- of underlying monad.
 --
--- __Common type errors and their meaning:__
+-- ==== __Common type errors and their meaning__
 --
 -- Couldn't match type @'[]@ with @r'0 : rs'0@:
 --
