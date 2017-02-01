@@ -3,9 +3,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Type class MonadEff.
@@ -26,18 +27,12 @@ module Control.Monad.Freer.Class
     )
   where
 
-import Control.Applicative (pure)
 import Control.Monad (Monad)
 import Data.Function ((.), id)
 import Data.Monoid (Monoid)
 
 import Control.Monad.Freer (Eff)
-import qualified Control.Monad.Freer.Internal as Internal
-    ( Eff(E, Val)
-    , run
-    , runM
-    , qComp
-    )
+import qualified Control.Monad.Freer.Internal as Internal (Eff(E, Val), qComp)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Cont (ContT)
 import Control.Monad.Trans.Except (ExceptT)
@@ -58,7 +53,7 @@ import Data.Open.Union (weaken)
 
 -- | This class captures the notion that 'Eff' monad can be used as a base of a
 -- monadic stack.
-class Monad m => MonadEff effs m where
+class Monad m => MonadEff effs m | m -> effs where
     -- | Lift 'Eff' monad in to a monad that natively supports specified
     -- effects (@effs@).
     liftEff :: Eff effs a -> m a
@@ -66,25 +61,14 @@ class Monad m => MonadEff effs m where
 -- | Variant of 'liftEff' which allows effects to be specified explicitly using
 -- a proxy type. This is useful in cases when type inference would fail without
 -- explicitly knowing the exact type of @effs@.
+--
+-- >>> :set -XDataKinds -XTypeApplications
+-- >>> import Data.Proxy
+-- >>> :t liftEffP (Proxy @'[Reader Int, IO])
+-- liftEffP (Proxy @'[Reader Int, IO])
+--   :: MonadEff '[Reader Int, IO] m => Eff '[Reader Int, IO] a -> m a
 liftEffP :: MonadEff effs m => proxy effs -> Eff effs a -> m a
 liftEffP _proxy = liftEff
-
--- | @'Eff' '[]@ is isomorphic to 'Identity', therefore it can be lifted in to
--- any monad.
---
--- @
--- runIdentity . 'liftEff' === 'Internal.run'
--- @
-instance Monad m => MonadEff '[] m where
-    liftEff = pure . Internal.run
-
--- | @'Eff' '[m]@, where @m@ is a 'Monad', is isomorphic to just @m@.
---
--- @
--- 'liftEff' = 'Internal.runM'
--- @
-instance Monad m => MonadEff '[m] m where
-    liftEff = Internal.runM
 
 -- | 'Eff' monad can be embedded in to itself.
 --
@@ -97,14 +81,7 @@ instance MonadEff effs (Eff effs) where
 -- | 'Eff' monad with less effects can be injected in to an 'Eff' with strictly
 -- more effects.
 --
--- @
--- 'liftEff' = 'weakenEff'
--- @
-instance (effs ~ (e ': es)) => MonadEff effs (Eff (eff ': effs)) where
-    liftEff = weakenEff
-
--- | 'Eff' monad with less effects can be injected in to an 'Eff' with strictly
--- more effects.
+-- TODO: Remove @effs ~ (e ': es)@ constraint when switched to @freer-effects@.
 weakenEff :: (effs ~ (e ': es)) => Eff effs a -> Eff (eff ': effs) a
 weakenEff = \case
     Internal.Val x -> Internal.Val x
