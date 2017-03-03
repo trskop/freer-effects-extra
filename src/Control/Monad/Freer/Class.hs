@@ -48,7 +48,7 @@ import qualified Control.Monad.Trans.Writer.Lazy as Lazy (WriterT)
 import qualified Control.Monad.Trans.Writer.Strict as Strict (WriterT)
 
 import Data.FTCQueue (tsingleton)
-import Data.Open.Union (weaken)
+import Data.OpenUnion (weaken)
 
 
 -- | This class captures the notion that 'Eff' monad can be used as a base of a
