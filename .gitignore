@@ -89,3 +89,10 @@ cabal.sandbox.config
 cabal.project.local
 .HTF/
 # }}} Haskell.gitignore #######################################################
+
+# {{{ Local ###################################################################
+
+# Prevent stack.yaml to be commited. Let users decide how they want to use this
+# package.
+stack.yaml
+# }}} Local ###################################################################
