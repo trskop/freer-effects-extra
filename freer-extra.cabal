@@ -1,8 +1,9 @@
 name:                   freer-extra
 version:                0.1.0.0
-synopsis:               Extra goodies for freer package.
+synopsis:               Extra goodies for freer-effects package.
 description:
-  Extra goodies for <https://hackage.haskell.org/package/freer freer> package.
+  Extra goodies for
+  <https://hackage.haskell.org/package/freer-effects freer-effects> package.
 
 homepage:               https://github.com/trskop/freer-extra
 bug-reports:            https://github.com/trskop/freer-extra/issues

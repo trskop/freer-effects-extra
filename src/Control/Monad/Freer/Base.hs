@@ -111,8 +111,8 @@ instance
 -- @'Eff' '[m] w@ which gives us @m w@ where @m@ is the underlying monad, e.g.
 -- 'IO'.
 --
--- In (freer) 'Eff' implementation the base monad is encoded as just a nother
--- effect, but it has specific features, and those aren't captured by
+-- In (freer-effects) 'Eff' implementation the base monad is encoded as just
+-- another effect, but it has specific features, and those aren't captured by
 -- considering it to be ordinary effect. This class provides same functionality
 -- as 'Member', but it makes a distinction between common effects and effect(s)
 -- of underlying monad.

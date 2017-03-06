@@ -8,7 +8,7 @@ Freer Extra
 Description
 -----------
 
-Extra goodies for [freer][Hackage: freer] package.
+Extra goodies for [freer-effects][Hackage: freer-effects] package.
 
 
 License
@@ -26,15 +26,7 @@ that).
 
 
 
-[Hackage: freer]:
-    https://hackage.haskell.org/package/freer
-    "freer package on Hackage"
-[Haskell.org]:
-  http://www.haskell.org
-  "The Haskell Programming Language"
-[tl;dr Legal: BSD3]:
-  https://tldrlegal.com/license/bsd-3-clause-license-%28revised%29
-  "BSD 3-Clause License (Revised)"
-[LICENSE]:
-  https://github.com/trskop/freer-extra/blob/master/LICENSE
-  "License of freer-extra package."
+[Hackage: freer-effects]: https://hackage.haskell.org/package/freer-effects "freer-effects package on Hackage"
+[Haskell.org]: http://www.haskell.org "The Haskell Programming Language"
+[tl;dr Legal: BSD3]: https://tldrlegal.com/license/bsd-3-clause-license-%28revised%29 "BSD 3-Clause License (Revised)"
+[LICENSE]: https://github.com/trskop/freer-extra/blob/master/LICENSE "License of freer-extra package."
