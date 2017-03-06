@@ -93,9 +93,7 @@ instance MonadEff effs (Eff effs) where
 
 -- | 'Eff' monad with less effects can be injected in to an 'Eff' with strictly
 -- more effects.
---
--- TODO: Remove @effs ~ (e ': es)@ constraint when switched to @freer-effects@.
-weakenEff :: (effs ~ (e ': es)) => Eff effs a -> Eff (eff ': effs) a
+weakenEff :: Eff effs a -> Eff (eff ': effs) a
 weakenEff = \case
     Internal.Val x -> Internal.Val x
     Internal.E u q -> Internal.E (weaken u) (tsingleton k)
