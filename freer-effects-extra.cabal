@@ -26,6 +26,7 @@ library
     , Control.Monad.Freer.Exception.Extra
     , Control.Monad.Freer.Reader.Extra
     , Control.Monad.Freer.State.Extra
+    , Control.Monad.Freer.Trans
   -- other-modules:
 
   build-depends:
@@ -33,6 +34,7 @@ library
     , exceptions >=0.6 && <0.9
     , freer-effects ==0.3.*
     , lens ==4.*
+    , mmorph
     , mtl >=1.1 && <3
     -- ^ Version 1.1.0.0 is the first one that introduced
     -- "Control.Monad.{Reader,State}.Class".
