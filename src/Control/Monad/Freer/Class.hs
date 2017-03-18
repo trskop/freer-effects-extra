@@ -69,6 +69,18 @@ import Data.OpenUnion (weaken)
 class Monad m => MonadEff effs m | m -> effs where
     -- | Lift 'Eff' monad in to a monad that natively supports specified
     -- effects @effs :: [* -> *]@.
+    --
+    -- Sometimes the value of @effs :: [* -> *]@ is not known at the moment of
+    -- usage of this function. In such cases it is useful to use
+    -- *ScopedTypeVariables* langauge extension and pass the value of @effs ::
+    -- [* -> *]@ explicitly. There are two ways of doing this:
+    --
+    -- * On GHC >=8 we can use *TypeApplications* language extension to pass
+    --   value of @effs :: [* -> *]@ directly as @'liftEff' \@effs@ where
+    --   @effs@ type variable must be in scope.
+    --
+    -- * On older GHC, or when we already have a @'Proxy' effs@ type available,
+    --   then we can use 'liftEffP'. See its documentation for details.
     liftEff :: Eff effs a -> m a
 
 -- | Variant of 'liftEff' which allows effects to be specified explicitly using
