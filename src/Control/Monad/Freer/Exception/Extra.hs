@@ -83,7 +83,7 @@ import Control.Monad.Freer.Base (BaseMember)
 --
 -- * @'ExcMembers' '[Err1, Err2, ..., ErrN] effs@
 type family ExcMembers (es :: [*]) (effs :: [* -> *]) :: Constraint where
-    ExcMembers '[] effs = ()
+    ExcMembers '[]       effs = ()
     ExcMembers (e ': es) effs = (Member (Exc e) effs, ExcMembers es effs)
 
 -- | Following two types are equivalent:
@@ -92,7 +92,7 @@ type family ExcMembers (es :: [*]) (effs :: [* -> *]) :: Constraint where
 --
 -- * @'Eff ('Excs' '[Err1, Err2, ... ErrN] effs) r@
 type family Excs (es :: [*]) (effs :: [* -> *]) :: [* -> *] where
-    Excs '[] effs = effs
+    Excs '[]       effs = effs
     Excs (e ': es) effs = Exc e ': Excs es effs
 
 -- {{{ Effect Evaluation ------------------------------------------------------
@@ -159,7 +159,7 @@ data HandleErrors (es :: [*]) (effs :: [* -> *]) a where
 -- 'evalError' h === 'runError' >=> either h pure
 -- @
 evalError :: (e -> Eff effs a) -> Eff (Exc e ': effs) a -> Eff effs a
-evalError h = handleRelay pure (\(Exc e) _k -> h e)
+evalError h = handleRelay pure $ \(Exc e) _k -> h e
 {-# INLINEABLE evalError #-}
 
 -- | Evaluate 'Exc' effects for all @(es :: [*])@ exceptions by using provided
@@ -176,7 +176,7 @@ evalErrors
     -> Eff (Excs es effs) a
     -> Eff effs a
 evalErrors = \case
-    NoErrorHandler -> id
+    NoErrorHandler   -> id
     HandleError h hs -> evalErrors hs . evalError h
 {-# INLINEABLE evalErrors #-}
 
